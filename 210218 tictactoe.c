@@ -244,13 +244,31 @@ void read_touch_coords(uint16_t *TP_X, uint16_t *TP_Y) { //èitanje x i y koordi
     PORTD |= _BV(T_CS);
 }
 
-void draw_font_pixel(uint16_t x, uint16_t y, uint16_t color, uint8_t pixel_size) {
-    PORTC &= ~_BV(LCD_CS);
-    TFT_set_address(x, MAX_Y - y, x + pixel_size, MAX_Y - y + pixel_size);
-    for(uint8_t i = 0; i < (pixel_size * pixel_size); i++) {
-        TFT_write(color, DATA);
+//bojanje cijelog ekrana u zadanu boju
+void set_background_color(uint16_t color) {
+    TFT_set_address(0, 0, 239, 319);
+
+    for (uint16_t i = 0; i < 320; i++) {
+        for (uint8_t j = 0; j < 240; j++) {
+            TFT_write(color, DATA);
+        }
     }
+}
+
+//crtanje na odredenoj poziciji
+void draw_pixel(uint16_t x, uint16_t y, uint16_t color) {
+    PORTC &= ~_BV(LCD_CS);
+    TFT_set_cursor(x, y);
+    TFT_write(color, DATA);
     PORTC |= _BV(LCD_CS);
+}
+
+void draw_font_pixel(uint16_t x, uint16_t y, uint16_t color, uint8_t pixel_size) {
+    for(uint8_t i = 0; i < pixel_size; i++) {
+        for(uint8_t j = 0; j < pixel_size; j++) {
+            draw_pixel(x + i, y + j, color);
+        }
+    }
 }
 
 void print_char(uint16_t x, uint16_t y, uint8_t font_size, uint16_t color, uint16_t back_color, uint8_t val) {
@@ -269,40 +287,21 @@ void print_char(uint16_t x, uint16_t y, uint8_t font_size, uint16_t color, uint1
 
 //crtanje stringa
 void print_string(uint16_t x, uint16_t y, uint8_t font_size, uint16_t color, uint16_t back_color, const char *ch) {
-    int cnt = 0;
+    uint8_t cnt = 0;
 
     do {
         if (ch[cnt] == ' ') {
-            print_char(x + font_size / 2, y, font_size, color, back_color, 26);
+            print_char(x + font_size, y, font_size, color, back_color, 26);
         } else if (ch[cnt] == '1') {
-            print_char(x + font_size / 2, y, font_size, color, back_color, 27);
+            print_char(x + font_size, y, font_size, color, back_color, 27);
         } else if (ch[cnt] == '2') {
-            print_char(x + font_size / 2, y, font_size, color, back_color, 28);
+            print_char(x + font_size, y, font_size, color, back_color, 28);
         } else {
-            print_char(x + font_size / 2, y, font_size, color, back_color, ch[cnt] - 'A');
+            print_char(x + font_size, y, font_size, color, back_color, ch[cnt] - 'A');
         }
         cnt++;
         y += 0x05 * font_size + 0x01;
-    }while(ch[cnt] != '\0');
-}
-
-//bojanje cijelog ekrana u zadanu boju
-void set_background_color(uint16_t color) {
-    TFT_set_address(0, 0, 239, 319);
-
-    for (uint16_t i = 0; i < 320; i++) {
-        for (uint8_t j = 0; j < 240; j++) {
-            TFT_write(color, DATA);
-        }
-    }
-}
-
-//crtanje na odredenoj poziciji
-void draw_pixel(uint16_t x, uint16_t y, uint16_t color) {
-    PORTC &= ~_BV(LCD_CS);
-    TFT_set_cursor(x, y);
-    TFT_write(color, DATA);
-    PORTC |= _BV(LCD_CS);
+    } while(ch[cnt] != '\0');
 }
 
 void draw_h_line(uint16_t x1, uint16_t y1, uint16_t y2, uint16_t color) {
@@ -390,7 +389,7 @@ uint8_t check_touch(uint16_t TP_X, uint16_t TP_Y, uint16_t x, uint16_t y, uint16
 }
 
 uint8_t game_over(uint8_t board[3][3]) {
-    for (int i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         if (board[i][0] != EMPTY && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
             return board[i][0]; // 3 same in a row
         }
@@ -424,8 +423,8 @@ int8_t minimax(uint8_t board[3][3], uint8_t depth, uint8_t is_AI, uint8_t ai_pla
 
     // We put worst score outcome as initial best_score
     best_score = is_AI ? SCORE_LOSS : SCORE_WIN;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
+    for (uint8_t i = 0; i < 3; i++) {
+        for (uint8_t j = 0; j < 3; j++) {
             if (board[i][j] == EMPTY) {
                 board[i][j] = is_AI ? ai_player : (ai_player == CROSS ? NOUGHT : CROSS);
                 score = minimax(board, depth + 1, is_AI ? HUMAN : AI, ai_player);
@@ -456,8 +455,8 @@ uint8_t best_move(uint8_t board[3][3], uint8_t move_counter, uint8_t ai_player) 
     int8_t score = SCORE_LOSS, best_score = SCORE_LOSS; // Set both to worst case which is loss
 
     // This is the first iteration of minimax
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
+    for (uint8_t i = 0; i < 3; i++) {
+        for (uint8_t j = 0; j < 3; j++) {
             if (board[i][j] == EMPTY) {
                 board[i][j] = ai_player;
                 score = minimax(board, move_counter + 1, HUMAN, ai_player);
@@ -476,7 +475,7 @@ uint8_t best_move(uint8_t board[3][3], uint8_t move_counter, uint8_t ai_player) 
     return x * 3 + y;
 }
 
-uint8_t draw_on_grid(uint8_t board[3][3], int i, int j, uint8_t mark) {
+uint8_t draw_on_grid(uint8_t board[3][3], uint8_t i, uint8_t j, uint8_t mark) {
         board[i][j] = mark;
 
         uint8_t x = XBR + 2 * i * SKP + i * DIM;
@@ -500,7 +499,7 @@ void main() {
     // draw_cross(MAX_X - SKP - BBSY, SKP, BBSY, RED);
     // print_string(MAX_X - SKP - BBSY - 32, SKP + 5, 3, WHITE, CYAN, "DRAW\0"); // Text width = 60, Text height = 24
     // print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "P2\0"); // Text width = 30, Text height = 24
-    
+
     TFT_start();
 
     uint8_t move_counter;
@@ -512,24 +511,25 @@ void main() {
     uint8_t flagGameDone = 0;
     uint8_t flagAIPlayer = 0;
 
-    while (1) {    
+    while (1) {
         if (flagGameInProgress && !flagGameDone) {
             flagGameDone = game_over(board);
             if (move_counter >= 9 || flagGameDone) {
-                draw_rectangle(MAX_X - SKP - BBSY, SKP, BBSY, BBSY, WHITE);
-                
                 if (!flagGameDone) {
                     print_string(MAX_X - SKP - BBSY - 32, SKP + 5, 3, WHITE, CYAN, "DRAW\0"); // Text width = 60, Text height = 24
                 } else {
-                    print_string(MAX_X - SKP - BBSY - 32, SKP + 12, 3, WHITE, CYAN, "WON\0"); // Text width = 45, Text height = 24
+                    print_string(MAX_X - SKP - BBSY - 32, SKP + 5, 3, WHITE, CYAN, "WINS\0"); // Text width = 60, Text height = 24
                 }
 
                 if (!flagGameDone || flagGameDone == NOUGHT) {
-                    draw_circle(MAX_X - SKP - BBSY, SKP, BBSY / 2, GREEN);
+                    draw_circle(MAX_X - BBSY, 2 * SKP, BBSY / 2 - SKP, GREEN);
                 }
+
                 if (!flagGameDone || flagGameDone == CROSS) {
-                    draw_cross(MAX_X - SKP - BBSY, SKP, BBSY, RED);
+                    draw_cross(MAX_X - BBSY, 2 * SKP, BBSY - 2 * SKP, RED);
                 }
+
+                draw_rectangle(MAX_X - SKP - BBSY, SKP, BBSY, BBSY, WHITE);
                 flagGameDone = 1;
             } else if (flagAIPlayer == player) {
                 uint8_t n;
@@ -541,16 +541,22 @@ void main() {
                 player = draw_on_grid(board, n / 3, n % 3, player);
                 move_counter++;
             }
-            
-            if (flagAIPlayer == player) {
-                // Print AI
-                print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "AI\0"); // Text width = 30, Text height = 24
-            } else if (player == CROSS) {
-                // Print P1
-                print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "P1\0"); // Text width = 30, Text height = 24
-            } else {
-                // Print P2
-                print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "P2\0"); // Text width = 30, Text height = 24
+
+            if (!flagGameDone) {
+                if (flagAIPlayer == player) {
+                    // Print AI
+                    print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "AI\0"); // Text width = 30, Text height = 24
+                } else if (player == CROSS) {
+                    // Print P1
+                    print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "P1\0"); // Text width = 30, Text height = 24
+                } else if (player == NOUGHT) {
+                    // Print P2
+                    print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "P2\0"); // Text width = 30, Text height = 24
+                }
+            }
+
+            if (flagGameDone && move_counter >= 9) {
+                print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "  \0"); // Text width = 30, Text height = 24
             }
         }
 
@@ -561,15 +567,15 @@ void main() {
 
             if (!flagGameInProgress) {
                 // Menu check
-                if (check_touch(TP_X, TP_Y, BBR, BDY + 2 * BBR, BDX, BDY)) {
+                if (check_touch(TP_X, TP_Y, BDX + 2 * BBR, BBR, BDX, BDY)) {
                     // Donji button - lijevi
                     flagGameInProgress = 1;
                     flagAIPlayer = CROSS;
-                } else if (check_touch(TP_X, TP_Y, BBR, BBR, BDX, BDY)) {
+                } else if (check_touch(TP_X, TP_Y, BDX + 2 * BBR, BDY + 2 * BBR, BDX, BDY)) {
                     // Donji button - desni
                     flagGameInProgress = 1;
                     flagAIPlayer = NOUGHT;
-                } else if (check_touch(TP_X, TP_Y, BDX + 2 * BBR, BBR, BDX, 2 * BDY + BBR)) {
+                } else if (check_touch(TP_X, TP_Y, BBR, BBR, BDX, 2 * BDY + BBR)) {
                     // Gornji button
                     flagGameInProgress = 1;
                     flagAIPlayer = 0;
@@ -621,7 +627,7 @@ void main() {
                         uint16_t y = YBR + 2 * j * SKP + j * DIM;
 
                         if (check_touch(TP_X, TP_Y, x, y, DIM, DIM)) {
-                            if(board[i][j] == EMPTY) {
+                            if (board[i][j] == EMPTY) {
                                 player = draw_on_grid(board, i, j, player);
                                 move_counter++;
                             }
