@@ -17,36 +17,36 @@
 #define MAX_Y 320
 
 // Drawing definitions
-#define XBR 10		// da grid ne datkne rubove bas
-#define YBR 90		// ako nema buttona 50
-#define SKP 10		// razmak do grida
-#define DIM 60		// sirina polja koje se moze dotaknut
-#define RAD DIM / 2	// radijus
-#define BBR 40 // button border
-#define BBSX 40 // Back button size
-#define BBSY 70 // Back button size
-#define BDX (MAX_X - 3 * BBR) / 2 // visina buttona po x-u
-#define BDY (MAX_Y - 3 * BBR) / 2 // sirina buttona po y osi
+#define XBR 10		// space between grid and edge of screen
+#define YBR 90		// space between grid and edge of screen
+#define SKP 10		// space between grid and characters 'X' or 'O'
+#define DIM 60		// width of field where 'X' or 'O' are drawn
+#define RAD DIM / 2	// radius
+#define BBR 40      // button border
+#define BBSX 40     // back button size x-axis
+#define BBSY 70     // back button size y-axis
+#define BDX (MAX_X - 3 * BBR) / 2 // height of button x-axis
+#define BDY (MAX_Y - 3 * BBR) / 2 // height of button y-axis
 
 // Pinout
-#define LCD_DATA_H PORTB //pinovi za podatke DB8-DB15
-#define LCD_DATA_L PORTA //pinovi za podatke DB0-DB7
+#define LCD_DATA_H PORTB // data pins DB8-DB15
+#define LCD_DATA_L PORTA // data pins DB0-DB7
 
-#define LCD_RS    PC0 //mjenjanje izmedu komandi/podataka
-#define LCD_WR    PC1 //pisi podatke
-#define LCD_RD    PC2 //èitaj podatke
-#define LCD_CS    PC6 //chipe select
-#define LCD_RESET PC7 //reset ekrana
+#define LCD_RS    PC0 // changing between commands and data
+#define LCD_WR    PC1 // write data
+#define LCD_RD    PC2 // read data
+#define LCD_CS    PC6 // chip select
+#define LCD_RESET PC7 // lcd reset
 
-#define T_CLK PD0 //touch controller clock - T_CLK
-#define T_CS  PD1 //chip select - T_CS
-#define T_DIN PD2 //preko ovog pina se salju komande na touch (posalji x  koordinatu,posalji y koordinatu) - T_DIN
-#define T_DO  PD3 // preko ovog pina se dobivaju informacije s toucha u seriji - T_DO
-#define T_IRQ PD4 //postavlja se na 1 ako se dira ekran - T_IRQ
+#define T_CLK PD0   // touch controller clock
+#define T_CS  PD1   // chip select
+#define T_DIN PD2   // sending commands or data to touch part of screen, x and y coordinates
+#define T_DO  PD3   // receiving data from touch part of screen
+#define T_IRQ PD4   // interrupt, 1 if the screen is being touched
 
 // RS definitions
-#define CMD 0
-#define DATA 1
+#define CMD 0       // command
+#define DATA 1      // data
 
 // Game definitions
 #define EMPTY 0
@@ -100,10 +100,10 @@ uint8_t get_bit(uint8_t reg, uint8_t offset) {
 }
 
 void TFT_start() {
-    PORTD |= _BV(T_CS) | _BV(T_CLK) | _BV(T_DIN); //pocetak rada touch-a
+    PORTD |= _BV(T_CS) | _BV(T_CLK) | _BV(T_DIN); // touch prt starts working
 }
 
-void TFT_touch_write(uint8_t num) { // pise komande prema touchu
+void TFT_touch_write(uint8_t num) { // writes commands to touch
     PORTD &= ~_BV(T_CLK);
     for (uint8_t i = 0; i < 8; i++) {
         if (get_bit(num, 7 - i)) {
@@ -116,22 +116,22 @@ void TFT_touch_write(uint8_t num) { // pise komande prema touchu
     }
 }
 
-uint16_t TFT_touch_read() { //cita podatke s ADC na touchu, (u nasem slucaju koordinate)
+uint16_t TFT_touch_read() { // reads data from ADC on touch part of the screen (coordiates)
     uint16_t value = 0;
     for (uint8_t i = 0; i < 12; i++) {
         value <<= 1;
-        PORTD |= _BV(T_CLK);        //napravi se high signal na T_CLK
-        PORTD &= ~_BV(T_CLK);       // napravi se odmah low signal na T_CLK, time (kao sto je u datasheetu) se inicijalizira prijenos podataka
-        value += get_bit(PIND, T_DO); //touch ima 12 bitni ADC, zato brojimo od 0 do 12 i uzimamo po jedan bit s T_DO,
+        PORTD |= _BV(T_CLK);            // high signal on T_CLK
+        PORTD &= ~_BV(T_CLK);           // low signal on T_CLK, initialization of data transfer
+        value += get_bit(PIND, T_DO);   // touch has 12-bit ADC, counting 0-12, taking one by one bit from T_DO,
     }
 
     return value;
 }
 
-void TFT_write(uint16_t val, uint8_t rs) { //pisanje komandi na ekran
-    if (rs) { // rs == 1 - data
+void TFT_write(uint16_t val, uint8_t rs) { // sending commands to screen
+    if (rs) {                              // rs == 1 - data
         PORTC |= _BV(LCD_RS);
-        } else { // rs == 0 - command
+        } else {                           // rs == 0 - command
         PORTC &= ~_BV(LCD_RS);
     }
     PORTC &= ~_BV(LCD_CS);
@@ -142,12 +142,12 @@ void TFT_write(uint16_t val, uint8_t rs) { //pisanje komandi na ekran
     PORTC |= _BV(LCD_CS);
 }
 
-void TFT_write_pair(uint16_t cmd, uint16_t data) { //slanje odreðene komande i zapisa vrijednosti u memoriju
+void TFT_write_pair(uint16_t cmd, uint16_t data) { // sending specified command and value to memory
     TFT_write(cmd, CMD);
     TFT_write(data, DATA);
 }
 
-void TFT_set_address(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) { //postavlja prostor u memoriji na kojemu æe se crtati stvari
+void TFT_set_address(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) { // coordinates that define where elements will be drawn
     TFT_write_pair(0x0044, (x2 << 8) + x1);
     TFT_write_pair(0x0045, y1);
     TFT_write_pair(0x0046, y2);
@@ -160,9 +160,9 @@ void TFT_init(void) {
     DDRA = 0xff ;
     DDRB = 0xff;
     DDRC = 0xff;
-    DDRD = ~(_BV(T_DO) | _BV(T_IRQ)); //pinovi kao ulazni za primanje podataka
+    DDRD = ~(_BV(T_DO) | _BV(T_IRQ)); // pins for receiving data
 
-    //priprema lcd-a za konfiguraciju
+    // initializing lcd configuration
     PORTC |= _BV(LCD_RESET);
     _delay_ms(5);
     PORTC &= ~_BV(LCD_RESET);
@@ -217,26 +217,26 @@ void TFT_init(void) {
     TFT_write(0x0022, CMD);
 }
 
-//postavljanje crtanja na odredenu poziciju
+// setting cursor to a specific position
 void TFT_set_cursor(uint16_t x, uint16_t y) {
     TFT_write_pair(0x004E, x);
     TFT_write_pair(0x004F, MAX_Y - y);
     TFT_write(0x0022, CMD);
 }
 
-void read_touch_coords(uint16_t *TP_X, uint16_t *TP_Y) { //èitanje x i y koordinate s touch-a
+void read_touch_coords(uint16_t *TP_X, uint16_t *TP_Y) { // reading x and y coordinates from touch part of screen
     _delay_ms(1);
 
     PORTD &= ~_BV(T_CS);
 
-    TFT_touch_write(0x90); //ovo salje komandu touchu da se spremi ispisati Y koordinatu
+    TFT_touch_write(0x90); // sending command to touch part of screen to write y coordinate
 
     _delay_ms(1);
     PORTD |= _BV(T_CLK);  _NOP(); _NOP(); _NOP(); _NOP();
     PORTD &= ~_BV(T_CLK); _NOP(); _NOP(); _NOP(); _NOP();
     *TP_Y = (TFT_touch_read() - 80) / 6;
 
-    TFT_touch_write(0xD0); //ovo salje komandu touchu da se spremi ispisati X koordinatu
+    TFT_touch_write(0xD0); // sendng command to touch part of screen to write x coordinate
     PORTD |= _BV(T_CLK);  _NOP(); _NOP(); _NOP(); _NOP();
     PORTD &= ~_BV(T_CLK); _NOP(); _NOP(); _NOP(); _NOP();
     *TP_X = (TFT_touch_read() - 80) / 8;
@@ -244,7 +244,7 @@ void read_touch_coords(uint16_t *TP_X, uint16_t *TP_Y) { //èitanje x i y koordi
     PORTD |= _BV(T_CS);
 }
 
-//bojanje cijelog ekrana u zadanu boju
+// fill the screen with the specied color
 void set_background_color(uint16_t color) {
     TFT_set_address(0, 0, 239, 319);
 
@@ -255,7 +255,7 @@ void set_background_color(uint16_t color) {
     }
 }
 
-//crtanje na odredenoj poziciji
+// setting a color of a pixel at the specified position
 void draw_pixel(uint16_t x, uint16_t y, uint16_t color) {
     PORTC &= ~_BV(LCD_CS);
     TFT_set_cursor(x, y);
@@ -263,6 +263,7 @@ void draw_pixel(uint16_t x, uint16_t y, uint16_t color) {
     PORTC |= _BV(LCD_CS);
 }
 
+// setting a color of a pixel at the specified position for a letter
 void draw_font_pixel(uint16_t x, uint16_t y, uint16_t color, uint8_t pixel_size) {
     for(uint8_t i = 0; i < pixel_size; i++) {
         for(uint8_t j = 0; j < pixel_size; j++) {
@@ -271,6 +272,7 @@ void draw_font_pixel(uint16_t x, uint16_t y, uint16_t color, uint8_t pixel_size)
     }
 }
 
+// setting a color to the pixels needed to write the specified character
 void print_char(uint16_t x, uint16_t y, uint8_t font_size, uint16_t color, uint16_t back_color, uint8_t val) {
     for (uint8_t i = 0x00; i < 0x05; i++) {
         uint8_t value = font[val][i];
@@ -285,7 +287,7 @@ void print_char(uint16_t x, uint16_t y, uint8_t font_size, uint16_t color, uint1
     }
 }
 
-//crtanje stringa
+// setting a color to the pixels needed to write the specified string
 void print_string(uint16_t x, uint16_t y, uint8_t font_size, uint16_t color, uint16_t back_color, const char *ch) {
     uint8_t cnt = 0;
 
@@ -304,18 +306,21 @@ void print_string(uint16_t x, uint16_t y, uint8_t font_size, uint16_t color, uin
     } while(ch[cnt] != '\0');
 }
 
+// setting a color to the pixels in a horizontal line
 void draw_h_line(uint16_t x1, uint16_t y1, uint16_t y2, uint16_t color) {
     for (; y1 < y2; y1++) {
         draw_pixel(x1, y1, color);
     }
 }
 
+// setting a color to the pixels in a vetical line
 void draw_v_line(uint16_t y1, uint16_t x1, uint16_t x2, uint16_t color) {
     for (; x1 < x2; x1++) {
         draw_pixel(x1, y1, color);
     }
 }
 
+// setting a color to the pixels in two diagonal lines
 void draw_cross(uint16_t x, uint16_t y, uint16_t d, uint16_t color) {
     for (uint8_t i = 0; i < d; i++) {
         draw_pixel(x + i, y + i, color);
@@ -323,6 +328,7 @@ void draw_cross(uint16_t x, uint16_t y, uint16_t d, uint16_t color) {
     }
 }
 
+// setting a color to the pixels in circle
 void draw_circle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) {
     x0 += r;
     y0 += r;
@@ -346,6 +352,7 @@ void draw_circle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) {
     } while (x <= 0);
 }
 
+// setting a color to the pixels of a rectangle
 void draw_rectangle(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy, uint16_t color) {
     draw_h_line(x, y, y + dy, color);
     draw_h_line(x + dx, y, y + dy, color);
@@ -372,22 +379,24 @@ void initialize_grid() {
 void initialize_menu() {
     set_background_color(CYAN);
 
-    // Gornji button
+    // 2 player button
     draw_rectangle(BBR, BBR, BDX, 2 * BDY + BBR, WHITE);
     print_string(BBR + 18, BBR + 37, 3, WHITE, CYAN, "TWO PLAYERS\0"); // Text width = 165, Text height = 24
 
-    // Donji button - desni
+    // AI 2nd buton, down right
     draw_rectangle(BDX + 2 * BBR, BDY + 2 * BBR, BDX, BDY, WHITE);
     print_string(BDX + 2 * BBR + 18, BDY + 2 * BBR + 5, 3, WHITE, CYAN, "AI 2ND\0"); // Text width = 90, Text height = 24
-    // Donji button - lijevi
+    // AI 1st button, down left
     draw_rectangle(BDX + 2 * BBR, BBR, BDX, BDY, WHITE);
     print_string(BDX + 2 * BBR + 18, BBR + 5, 3, WHITE, CYAN, "AI 1ST\0"); // Text width = 90, Text height = 24
 }
 
+// check if the screen is being touched
 uint8_t check_touch(uint16_t TP_X, uint16_t TP_Y, uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
     return TP_Y >= y && TP_Y <= y + dy && TP_X >= x && TP_X <= x + dx;
 }
 
+// chek if the e is over
 uint8_t game_over(uint8_t board[3][3]) {
     for (uint8_t i = 0; i < 3; i++) {
         if (board[i][0] != EMPTY && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
@@ -399,7 +408,7 @@ uint8_t game_over(uint8_t board[3][3]) {
     }
 
     if (board[1][1] != EMPTY && ((board[0][0] == board[1][1] && board[1][1] == board[2][2]) || (board[0][2] == board[1][1] && board[1][1] == board[2][0]))) {
-        return board[1][1]; // 3 diagonal same
+        return board[1][1]; // 3 same in a diagonal
     }
 
     return 0;
@@ -407,10 +416,9 @@ uint8_t game_over(uint8_t board[3][3]) {
 
 int8_t minimax(uint8_t board[3][3], uint8_t depth, uint8_t is_AI, uint8_t ai_player) {
     int8_t score = 0, best_score = 0;
-
-    // After opponent made their move, we lost
-    // If we are currently the AI that means that Human made their move before
-    // which is why we lost, therefore set the score to 1
+    
+    // if it is the humans turn, check if game over before playing humans move
+    // if game is over, return 1 -> ai won
     if (game_over(board)) {
         return is_AI ? SCORE_LOSS : SCORE_WIN;
     }
@@ -421,7 +429,7 @@ int8_t minimax(uint8_t board[3][3], uint8_t depth, uint8_t is_AI, uint8_t ai_pla
         return SCORE_DRAW;
     }
 
-    // We put worst score outcome as initial best_score
+    // worst score outcome is initial best_score
     best_score = is_AI ? SCORE_LOSS : SCORE_WIN;
     for (uint8_t i = 0; i < 3; i++) {
         for (uint8_t j = 0; j < 3; j++) {
@@ -429,8 +437,8 @@ int8_t minimax(uint8_t board[3][3], uint8_t depth, uint8_t is_AI, uint8_t ai_pla
                 board[i][j] = is_AI ? ai_player : (ai_player == CROSS ? NOUGHT : CROSS);
                 score = minimax(board, depth + 1, is_AI ? HUMAN : AI, ai_player);
 
-                // If we are AI we are looking for MAX of our moves which in turn means that
-                // we are actually picking from the MIN of the oponents moves
+                // AI looking for MAX score of moves which in turn means that
+                // AI is picking from the MIN of the oponents moves
                 if ((is_AI && (score > best_score)) || (!is_AI && (score < best_score))) {
                     best_score = score;
                 }
@@ -454,7 +462,7 @@ uint8_t best_move(uint8_t board[3][3], uint8_t move_counter, uint8_t ai_player) 
     uint8_t x = 0, y = 0;
     int8_t score = SCORE_LOSS, best_score = SCORE_LOSS; // Set both to worst case which is loss
 
-    // This is the first iteration of minimax
+    // First iteration of minimax
     for (uint8_t i = 0; i < 3; i++) {
         for (uint8_t j = 0; j < 3; j++) {
             if (board[i][j] == EMPTY) {
@@ -462,7 +470,7 @@ uint8_t best_move(uint8_t board[3][3], uint8_t move_counter, uint8_t ai_player) 
                 score = minimax(board, move_counter + 1, HUMAN, ai_player);
                 board[i][j] = EMPTY;
 
-                // We are looking for MAX of our moves
+                // Looking for MAX
                 if (score > best_score) {
                     best_score = score;
                     x = i;
@@ -475,6 +483,7 @@ uint8_t best_move(uint8_t board[3][3], uint8_t move_counter, uint8_t ai_player) 
     return x * 3 + y;
 }
 
+// draws characters 'X' or 'O' on touched field
 uint8_t draw_on_grid(uint8_t board[3][3], uint8_t i, uint8_t j, uint8_t mark) {
         board[i][j] = mark;
 
@@ -493,22 +502,16 @@ void main() {
     TFT_init();
 
     initialize_menu();
-    // initialize_grid();
-    // draw_rectangle(MAX_X - SKP - BBSY, SKP, BBSY, BBSY, WHITE);
-    // draw_circle(MAX_X - SKP - BBSY, SKP, BBSY / 2, GREEN);
-    // draw_cross(MAX_X - SKP - BBSY, SKP, BBSY, RED);
-    // print_string(MAX_X - SKP - BBSY - 32, SKP + 5, 3, WHITE, CYAN, "DRAW\0"); // Text width = 60, Text height = 24
-    // print_string(SKP + BBSX + 8, SKP + 5, 3, WHITE, CYAN, "P2\0"); // Text width = 30, Text height = 24
 
     TFT_start();
 
-    uint8_t move_counter;
+    uint8_t move_counter;               // number of moves
     uint8_t player;
-    uint8_t board[3][3];
-    uint16_t TP_X;
-    uint16_t TP_Y;
-    uint8_t flagGameInProgress = 0;
-    uint8_t flagGameDone = 0;
+    uint8_t board[3][3];                // grid
+    uint16_t TP_X;                      // received coordiates rom tuch part of screen
+    uint16_t TP_Y;                      // received coordiates rom tuch part of screen
+    uint8_t flagGameInProgress = 0;     // main menu or game
+    uint8_t flagGameDone = 0;           // game is not finished
     uint8_t flagAIPlayer = 0;
 
     while (1) {
@@ -561,22 +564,22 @@ void main() {
         }
 
 
-        //ako dode do dodira n a ekranu, ulazi u ovu funkciju
+        // if screen is touched
         if (get_bit(PIND, T_IRQ) == 0) {
             read_touch_coords(&TP_X, &TP_Y); //citaj koordinate x,y
 
             if (!flagGameInProgress) {
                 // Menu check
                 if (check_touch(TP_X, TP_Y, BDX + 2 * BBR, BBR, BDX, BDY)) {
-                    // Donji button - lijevi
+                    // Button - down left, AI first
                     flagGameInProgress = 1;
                     flagAIPlayer = CROSS;
                 } else if (check_touch(TP_X, TP_Y, BDX + 2 * BBR, BDY + 2 * BBR, BDX, BDY)) {
-                    // Donji button - desni
+                    // Button - down right, AI second
                     flagGameInProgress = 1;
                     flagAIPlayer = NOUGHT;
                 } else if (check_touch(TP_X, TP_Y, BBR, BBR, BDX, 2 * BDY + BBR)) {
-                    // Gornji button
+                    // Upper button
                     flagGameInProgress = 1;
                     flagAIPlayer = 0;
                 }
