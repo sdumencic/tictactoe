@@ -17,14 +17,14 @@
 #define MAX_Y 320
 
 // Drawing definitions
-#define XBR 10		// space between grid and edge of screen
-#define YBR 90		// space between grid and edge of screen
-#define SKP 10		// space between grid and characters 'X' or 'O'
-#define DIM 60		// width of field where 'X' or 'O' are drawn
-#define RAD DIM / 2	// radius
-#define BBR 40      // button border
-#define BBSX 40     // back button size x-axis
-#define BBSY 70     // back button size y-axis
+#define XBR 10                    // space between grid and edge of screen
+#define YBR 90                    // space between grid and edge of screen
+#define SKP 10                    // space between grid and characters 'X' or 'O'
+#define DIM 60                    // width of field where 'X' or 'O' are drawn
+#define RAD DIM / 2	              // radius
+#define BBR 40                    // button border
+#define BBSX 40                   // back button size x-axis
+#define BBSY 70                   // back button size y-axis
 #define BDX (MAX_X - 3 * BBR) / 2 // height of button x-axis
 #define BDY (MAX_Y - 3 * BBR) / 2 // height of button y-axis
 
@@ -38,15 +38,15 @@
 #define LCD_CS    PC6 // chip select
 #define LCD_RESET PC7 // lcd reset
 
-#define T_CLK PD0   // touch controller clock
-#define T_CS  PD1   // chip select
-#define T_DIN PD2   // sending commands or data to touch part of screen, x and y coordinates
-#define T_DO  PD3   // receiving data from touch part of screen
-#define T_IRQ PD4   // interrupt, 1 if the screen is being touched
+#define T_CLK PD0 // touch controller clock
+#define T_CS  PD1 // chip select
+#define T_DIN PD2 // sending commands or data to touch part of screen, x and y coordinates
+#define T_DO  PD3 // receiving data from touch part of screen
+#define T_IRQ PD4 // interrupt, 1 if the screen is being touched
 
 // RS definitions
-#define CMD 0       // command
-#define DATA 1      // data
+#define CMD 0  // command
+#define DATA 1 // data
 
 // Game definitions
 #define EMPTY 0
@@ -90,20 +90,22 @@ static const unsigned char font[29][5] = {
     {0x63, 0x14, 0x08, 0x14, 0x63}, // 58 X
     {0x07, 0x08, 0x70, 0x08, 0x07}, // 59 Y
     {0x61, 0x51, 0x49, 0x45, 0x43}, // 5a Z
-    {0x00, 0x00, 0x00, 0x00, 0x00}, // 20 - space
-    {0x00, 0x42, 0x7F, 0x40, 0x00}, // 31 - 1
-    {0x42, 0x61, 0x51, 0x49, 0x46}  // 32 - 2
+    {0x00, 0x00, 0x00, 0x00, 0x00}, // 20 space
+    {0x00, 0x42, 0x7F, 0x40, 0x00}, // 31 1
+    {0x42, 0x61, 0x51, 0x49, 0x46}  // 32 2
 };
 
 uint8_t get_bit(uint8_t reg, uint8_t offset) {
     return (reg >> offset) & 1;
 }
 
+// touch part starts working
 void TFT_start() {
-    PORTD |= _BV(T_CS) | _BV(T_CLK) | _BV(T_DIN); // touch prt starts working
+    PORTD |= _BV(T_CS) | _BV(T_CLK) | _BV(T_DIN);
 }
 
-void TFT_touch_write(uint8_t num) { // writes commands to touch
+// writes commands to touch
+void TFT_touch_write(uint8_t num) {
     PORTD &= ~_BV(T_CLK);
     for (uint8_t i = 0; i < 8; i++) {
         if (get_bit(num, 7 - i)) {
@@ -116,7 +118,8 @@ void TFT_touch_write(uint8_t num) { // writes commands to touch
     }
 }
 
-uint16_t TFT_touch_read() { // reads data from ADC on touch part of the screen (coordiates)
+// reads data from ADC on touch part of the screen (coordiates)
+uint16_t TFT_touch_read() {
     uint16_t value = 0;
     for (uint8_t i = 0; i < 12; i++) {
         value <<= 1;
@@ -128,10 +131,11 @@ uint16_t TFT_touch_read() { // reads data from ADC on touch part of the screen (
     return value;
 }
 
-void TFT_write(uint16_t val, uint8_t rs) { // sending commands to screen
-    if (rs) {                              // rs == 1 - data
+// sending commands to screen
+void TFT_write(uint16_t val, uint8_t rs) {
+    if (rs) {                   // rs == 1 - data
         PORTC |= _BV(LCD_RS);
-        } else {                           // rs == 0 - command
+    } else {                    // rs == 0 - command
         PORTC &= ~_BV(LCD_RS);
     }
     PORTC &= ~_BV(LCD_CS);
@@ -142,12 +146,14 @@ void TFT_write(uint16_t val, uint8_t rs) { // sending commands to screen
     PORTC |= _BV(LCD_CS);
 }
 
-void TFT_write_pair(uint16_t cmd, uint16_t data) { // sending specified command and value to memory
+// sending specified command and value to memory
+void TFT_write_pair(uint16_t cmd, uint16_t data) {
     TFT_write(cmd, CMD);
     TFT_write(data, DATA);
 }
 
-void TFT_set_address(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) { // coordinates that define where elements will be drawn
+// coordinates that define where elements will be drawn
+void TFT_set_address(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
     TFT_write_pair(0x0044, (x2 << 8) + x1);
     TFT_write_pair(0x0045, y1);
     TFT_write_pair(0x0046, y2);
@@ -224,7 +230,8 @@ void TFT_set_cursor(uint16_t x, uint16_t y) {
     TFT_write(0x0022, CMD);
 }
 
-void read_touch_coords(uint16_t *TP_X, uint16_t *TP_Y) { // reading x and y coordinates from touch part of screen
+// reading x and y coordinates from touch part of screen
+void read_touch_coords(uint16_t *TP_X, uint16_t *TP_Y) {
     _delay_ms(1);
 
     PORTD &= ~_BV(T_CS);
@@ -416,7 +423,7 @@ uint8_t game_over(uint8_t board[3][3]) {
 
 int8_t minimax(uint8_t board[3][3], uint8_t depth, uint8_t is_AI, uint8_t ai_player) {
     int8_t score = 0, best_score = 0;
-    
+
     // if it is the humans turn, check if game over before playing humans move
     // if game is over, return 1 -> ai won
     if (game_over(board)) {
@@ -505,13 +512,13 @@ void main() {
 
     TFT_start();
 
-    uint8_t move_counter;               // number of moves
+    uint8_t move_counter;           // number of moves
     uint8_t player;
-    uint8_t board[3][3];                // grid
-    uint16_t TP_X;                      // received coordiates rom tuch part of screen
-    uint16_t TP_Y;                      // received coordiates rom tuch part of screen
-    uint8_t flagGameInProgress = 0;     // main menu or game
-    uint8_t flagGameDone = 0;           // game is not finished
+    uint8_t board[3][3];            // grid
+    uint16_t TP_X;                  // received coordiates rom tuch part of screen
+    uint16_t TP_Y;                  // received coordiates rom tuch part of screen
+    uint8_t flagGameInProgress = 0; // main menu or game
+    uint8_t flagGameDone = 0;       // game is not finished
     uint8_t flagAIPlayer = 0;
 
     while (1) {
