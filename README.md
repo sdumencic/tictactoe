@@ -16,9 +16,9 @@ Tic tac toe game:
 <img src= "./images/shema3.png">
 
 ## Results
-<img src= "./images/tictactoe1.png">
-<img src= "./images/tictactoe2.png">
-<img src= "./images/tictactoe3.png">
+<img src= "./images/tictactoe1.PNG">
+<img src= "./images/tictactoe2.PNG">
+<img src= "./images/tictactoe3.PNG">
 
 ## NAPOMENA
 Ovaj kod neće raditi s JTAG programatorom. JTAG koristi pinove PC2 - PC5, ali se PC2 koristi za čitanje podataka na prikaznom dijelu zaslona.
